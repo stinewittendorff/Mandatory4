@@ -30,7 +30,7 @@ func (n *Node) ReceiveToken(ctx context.Context, in *proto.Token) (*proto.Empty,
 	fmt.Printf("Node received token %d\n", n.id)
 	n.HasToken = true
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 10)
 	fmt.Printf("Node %d going to %s\n", n.id, n.NextNodeAddress)
 
 	n.passTokenToNext()
@@ -90,7 +90,7 @@ func RunNode(id int32, port string, nextNodeAddress string, HasToken bool) *Node
 		NextNodeAddress: nextNodeAddress,
 	}
 
-	lis, err := net.Listen("Tcp", fmt.Sprintf(":%s", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -103,7 +103,7 @@ func RunNode(id int32, port string, nextNodeAddress string, HasToken bool) *Node
 	}()
 
 	if HasToken {
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second * 10)
 		node.passTokenToNext()
 	}
 	select {}
@@ -123,4 +123,6 @@ func main() {
 	}
 
 	RunNode(int32(id), port, nextNodeAddress, HasToken)
+
+	select {}
 }
