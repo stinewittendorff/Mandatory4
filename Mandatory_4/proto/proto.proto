@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "Mandatory_4/proto";
+
+package TokenRing;
+
+message Token {
+    string message = 1;
+    int32 id = 2;
+}
+
+message Empty {}
+
+service Tokenring{
+    rpc Send(Token) returns (Empty) {};
+}
