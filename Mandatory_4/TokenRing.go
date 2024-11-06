@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 	"sync"
+	"strconv"
 	"time"
 
 	proto "TokenRing/proto"
@@ -19,21 +19,27 @@ type Node struct {
 	proto.UnimplementedTokenringServer
 	id              int32
 	HasToken        bool
+	RequestAccess   bool
 	NextNodeAddress string
 	mu              sync.Mutex
 }
 
-func (n *Node) ReceiveToken(ctx context.Context, in *proto.Token) (*proto.Empty, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
+func (n *Node) Send(ctx context.Context, in *proto.Token) (*proto.Empty, error) {
 	fmt.Printf("Node received token %d\n", n.id)
 	n.HasToken = true
+	if n.RequestAccess {
 
-	time.Sleep(time.Second * 10)
+	fmt.Printf("Node %d requests access to critical section", n.id)
+	fmt.Println()
+
+	n.EnterCriticalSection()
+	n.RequestAccess = false
+	} 
+
 	fmt.Printf("Node %d going to %s\n", n.id, n.NextNodeAddress)
 
 	n.passTokenToNext()
+	
 
 	return &proto.Empty{}, nil
 }
@@ -45,7 +51,6 @@ func (n *Node) passTokenToNext() {
 	if err != nil {
 		log.Fatalf("Did not connect: %s", err)
 	}
-	defer conn.Close()
 
 	client := proto.NewTokenringClient(conn)
 	token := &proto.Token{
@@ -53,33 +58,27 @@ func (n *Node) passTokenToNext() {
 		Message: "Token passing",
 	}
 
+	defer conn.Close()
+
 	fmt.Printf("Node %d sending token to %s\n", n.id, n.NextNodeAddress)
 	_, err = client.Send(context.Background(), token)
 	if err != nil {
 		log.Fatalf("Could not send token: %s", err)
 	}
-
 }
 
-func (n *Node) SendToken() {
-	n.HasToken = false
+func (n *Node) EnterCriticalSection() {
+    fmt.Printf("Node %d is entering critical section\n", n.id)
+    time.Sleep(time.Second * 5)
+    fmt.Printf("Node %d is leaving critical section\n", n.id)
+}
 
-	conn, err := grpc.Dial(n.NextNodeAddress, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("Did not connect: %s", err)
-	}
-	defer conn.Close()
-
-	client := proto.NewTokenringClient(conn)
-	token := &proto.Token{
-		Id:      n.id,
-		Message: "Token passing",
-	}
-
-	fmt.Printf("Node %d sending token to %s\n", n.id, n.NextNodeAddress)
-	_, err = client.Send(context.Background(), token)
-	if err != nil {
-		log.Fatalf("Could not send token: %s", err)
+func (n *Node) RequestCriticalSection() {
+	if (n.RequestAccess){} else {
+    n.mu.Lock()
+    n.RequestAccess = true
+	fmt.Printf("Node %d requests access to critical section\n", n.id)
+    n.mu.Unlock()
 	}
 }
 
@@ -102,11 +101,18 @@ func RunNode(id int32, port string, nextNodeAddress string, HasToken bool) *Node
 		}
 	}()
 
+	go func() {
+        for {
+            time.Sleep(time.Second * 45)
+            node.RequestCriticalSection()
+        }
+    }()
+
 	if HasToken {
 		time.Sleep(time.Second * 10)
 		node.passTokenToNext()
 	}
-	select {}
+	for{}
 }
 
 func main() {
@@ -124,5 +130,5 @@ func main() {
 
 	RunNode(int32(id), port, nextNodeAddress, HasToken)
 
-	select {}
+	for{}
 }
