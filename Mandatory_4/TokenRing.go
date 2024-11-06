@@ -27,11 +27,11 @@ type Node struct {
 func (n *Node) Send(ctx context.Context, in *proto.Token) (*proto.Empty, error) {
 	fmt.Printf("Node received token %d\n", n.id)
 	n.HasToken = true
-	if n.RequestAccess {}
+	if n.RequestAccess {
 	fmt.Println()
 
 	n.EnterCriticalSection()
-	} 
+	}
 
 	fmt.Printf("Node %d going to %s\n", n.id, n.NextNodeAddress)
 	time.Sleep(time.Second * 5)
