@@ -6,8 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 	"strconv"
+	"sync"
 	"time"
 
 	proto "TokenRing/proto"
@@ -25,9 +25,10 @@ type Node struct {
 }
 
 func (n *Node) Send(ctx context.Context, in *proto.Token) (*proto.Empty, error) {
+	fmt.Printf("")
 	fmt.Printf("Node received token %d\n", n.id)
 	n.HasToken = true
-	if n.RequestAccess {
+	if n.RequestAccess == true {
 	fmt.Println()
 
 	n.EnterCriticalSection()
@@ -37,7 +38,6 @@ func (n *Node) Send(ctx context.Context, in *proto.Token) (*proto.Empty, error) 
 	time.Sleep(time.Second * 5)
 
 	n.passTokenToNext()
-	n.RequestAccess = false
 	
 
 	return &proto.Empty{}, nil
@@ -59,7 +59,7 @@ func (n *Node) passTokenToNext() {
 
 	defer conn.Close()
 
-	fmt.Printf("Node %d sending token to %s\n", n.id, n.NextNodeAddress)
+	fmt.Printf("Node %d sending token to %s\n at time %s", n.id, n.NextNodeAddress, time.Now().Format("15:04:05"))
 	_, err = client.Send(context.Background(), token)
 	if err != nil {
 		log.Fatalf("Could not send token: %s", err)
@@ -69,6 +69,7 @@ func (n *Node) passTokenToNext() {
 func (n *Node) EnterCriticalSection() {
     fmt.Printf("Node %d is entering critical section\n", n.id)
     time.Sleep(time.Second * 5)
+	n.RequestAccess = false
     fmt.Printf("Node %d is leaving critical section\n", n.id)
 }
 
@@ -76,7 +77,7 @@ func (n *Node) RequestCriticalSection() {
 	if (n.RequestAccess){} else {
     n.mu.Lock()
     n.RequestAccess = true
-	fmt.Printf("Node %d requests access to critical section\n", n.id)
+	fmt.Printf("Node %d requests access to critical section\n at time %s", n.id, time.Now().Format("15:04:05"))
     n.mu.Unlock()
 	}
 }
